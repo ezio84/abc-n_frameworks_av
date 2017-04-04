@@ -567,6 +567,10 @@ status_t SampleTable::setSyncSampleParams(off64_t data_offset, size_t data_size)
     }
 
     for (size_t i = 0; i < numSyncSamples; ++i) {
+        if (mSyncSamples[i] == 0) {
+            ALOGE("b/32423862, unexpected zero value in stss");
+            continue;
+        }
         mSyncSamples[i] = ntohl(mSyncSamples[i]) - 1;
     }
 
@@ -692,7 +696,13 @@ void SampleTable::buildSampleEntriesTable() {
             }
 
             ++sampleIndex;
-            sampleTime += delta;
+            if (sampleTime > UINT32_MAX - delta) {
+                ALOGE("%u + %u would overflow, clamping",
+                    sampleTime, delta);
+                sampleTime = UINT32_MAX;
+            } else {
+                sampleTime += delta;
+            }
         }
     }
 
@@ -983,4 +993,3 @@ int32_t SampleTable::getCompositionTimeOffset(uint32_t sampleIndex) {
 }
 
 }  // namespace android
-
